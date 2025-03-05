@@ -1,46 +1,42 @@
-const jwt = require('jsonwebtoken')
+const jwt = require("jsonwebtoken");
 
-exports.auth = (req, res, next) => {
-    try {
-        const authToken = req.headers.authorization
+exports.authMiddleware = (req, res, next) => {
+  try {
+    const authToken = req.headers.authorization;
 
-        //Ensure that the token is provided
-        if (!authToken) {
-            return res.json({
-                message: 'authToken is required'
-                success: false
-            }).status(401)
-        }
-
-        // Extract the actual token
-        if (!authToken.startsWith("Bearer ")) {
-            return res.status(400).json({
-                msg: "Invalid token format",
-            })
-        }
-
-        const jwtToken = authToken.split(" ")[1]
-        console.log("JWT Token -->", jwtToken)
-
-        // Verify the token
-        const decodedValue = jwt.verify(jwtToken, "jjj")
-        console.log("Decoded JWT -->", decodedValue)
-
-        if (!decodedValue.email || !decodedValue.userId || !decodedValue.role) {
-            return res.json({
-                message: "token is invalid",
-                success: false
-            }).status(401)
-        }
-        req.user = decodedValue;
-        next();
-    } catch (error) {
-        return res.json({
-            message: "Authentication field",
-            success: false
-        }).status(500)  
+    if (!authToken) {
+      return res.status(401).json({
+        message: "Authorization token is required",
+        success: false,
+      });
     }
-}
 
+    if (!authToken.startsWith("Bearer ")) {
+      return res.status(400).json({
+        message: "Invalid token format",
+        success: false,
+      });
+    }
 
-// router.post("/createTask",auth,createTask)
+    const jwtToken = authToken.split(" ")[1];
+    console.log("JWT Token -->", jwtToken);
+
+    const decodedValue = jwt.verify(jwtToken, "jjj");
+    console.log("Decoded JWT -->", decodedValue);
+
+    if (!decodedValue.email || !decodedValue.userId || !decodedValue.role) {
+      return res.status(401).json({
+        message: "Token is invalid",
+        success: false,
+      });
+    }
+
+    req.user = decodedValue;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      message: "Invalid or expired token",
+      success: false,
+    });
+  }
+};

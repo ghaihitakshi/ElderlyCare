@@ -1,47 +1,66 @@
-const mongoose = require('mongoose')
-const User = require('../models/User')
-const Task = require('../models/Task')
-//task can only be created by the logged in user //account type of user should be elderly
-//get all tasks
-//create a task i.e. post a task update delete a task
+// controllers/taskController.js
+const Task = require("../models/Task");
+const User = require("../models/User");
 
-//to check whether user is logged in or not
+// Create a new task
+exports.createTask = async (req, res) => {
+  try {
+    const { title, description, scheduledAt, reminderAt, assignedTo } =
+      req.body;
+    // Suppose req.user.userId is the id of the user creating the task
+    const createdBy = req.user.userId;
 
-const createTask = async (req, res)=>{
-    try {
-      
-        const { title, description, scheduledAt, reminderAt, status } = req.body
-        if (!title || !description || !scheduledAt || !reminderAt || !status) {
-            return res.json({
-                message: "Provide all the values",
-                success:false
-            }).status(403)
-        }
-        const userId = req.user.userId;
-        if (!userId) {
-            return res.json({
-                message: "userId not found",
-                success:false
-            }).status(403)
-        }
-        const newTask = await Task.create({
-            title,
-            description,
-            scheduledAt,
-            reminderAt,
-            status,
-            createdBy:userId // this is wrong
-        })
-        
-        return res.json({
-            message: 'Task successfully created',
-            success:true
-        }).status(200)
-    } catch (error) {
-        return res.json({
-            message: 'Internal Server Error',
-            success: false
-        }).status(500)
+    const newTask = await Task.create({
+      title,
+      description,
+      scheduledAt,
+      reminderAt,
+      createdBy,
+      assignedTo: assignedTo || null,
+    });
+
+    // Update user arrays
+    await User.findByIdAndUpdate(createdBy, {
+      $push: { tasksCreated: newTask._id },
+    });
+    if (assignedTo) {
+      await User.findByIdAndUpdate(assignedTo, {
+        $push: { tasksAssigned: newTask._id },
+      });
     }
-}
 
+    res.status(201).json({ success: true, task: newTask });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+exports.updateTaskStatus = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { status } = req.body; // PENDING, COMPLETED, or MISSED
+    const updatedTask = await Task.findByIdAndUpdate(
+      taskId,
+      { status },
+      { new: true }
+    );
+    res.json({ success: true, task: updatedTask });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Get tasks for a user (either created or assigned)
+exports.getUserTasks = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const tasks = await Task.find({
+      $or: [{ createdBy: userId }, { assignedTo: userId }],
+    })
+      .populate("createdBy")
+      .populate("assignedTo");
+    res.json({ success: true, tasks });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
