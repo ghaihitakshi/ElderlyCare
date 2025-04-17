@@ -1,5 +1,5 @@
 // controllers/prescriptionController.js
-const Prescription = require("../models/Prescritption");
+const Prescription = require("../models/Prescription");
 const User = require("../models/User");
 
 exports.createPrescription = async (req, res) => {

@@ -14,6 +14,6 @@ router.post("/", authMiddleware, createTask);
 router.patch("/:taskId/status", authMiddleware, updateTaskStatus);
 
 // Get tasks for the logged-in user
-router.get("/mytasks", authMiddleware, getUserTasks);
+router.get("/", authMiddleware, getUserTasks);
 
 module.exports = router;

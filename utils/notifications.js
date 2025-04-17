@@ -1,13 +1,14 @@
 // utils/notifications.js
 const nodemailer = require("nodemailer");
+const dotenv = require("dotenv");
+dotenv.config();
 
-// Example transporter configuration.
-// For production, use real SMTP credentials or environment variables.
+// Use environment variables for email configuration
 const transporter = nodemailer.createTransport({
   service: "gmail", // e.g., 'gmail', 'hotmail', etc.
   auth: {
-    user: "YOUR_EMAIL@gmail.com",
-    pass: "YOUR_EMAIL_PASSWORD",
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -18,18 +19,26 @@ const transporter = nodemailer.createTransport({
  */
 exports.sendReminder = async (task, toEmail) => {
   try {
-    // If you want to retrieve or store an email address from somewhere else,
-    // you could do it here. In this example, we demonstrate passing the
-    // email address as a second argument, or you could get a user email
-    // from the task itself if it’s populated.
-    const recipientEmail = toEmail || "recipient@example.com";
+    // If task has an assignedTo user that is populated, use their email
+    let recipientEmail = toEmail;
+
+    if (
+      !recipientEmail &&
+      task.assignedTo &&
+      typeof task.assignedTo === "object" &&
+      task.assignedTo.email
+    ) {
+      recipientEmail = task.assignedTo.email;
+    } else {
+      recipientEmail = recipientEmail || "recipient@example.com";
+    }
 
     // Customize the email subject & text as needed.
     const mailOptions = {
-      from: "YOUR_EMAIL@gmail.com",
+      from: process.env.EMAIL_USER,
       to: recipientEmail,
       subject: `Reminder: ${task.title}`,
-        text: `Hello! This is a reminder to complete your task: "${task.title}". 
+      text: `Hello! This is a reminder to complete your task: "${task.title}". 
 
         Task details:
         Description: ${task.description || "No Description"}
@@ -38,7 +47,7 @@ exports.sendReminder = async (task, toEmail) => {
 
         Please ensure it's done before it's missed!`,
     };
-      const info = await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
     console.log("Reminder email sent:", info.messageId);
   } catch (error) {
     console.error("Error sending reminder email:", error);

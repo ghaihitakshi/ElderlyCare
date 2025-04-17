@@ -19,10 +19,8 @@ exports.authMiddleware = (req, res, next) => {
     }
 
     const jwtToken = authToken.split(" ")[1];
-    console.log("JWT Token -->", jwtToken);
 
-    const decodedValue = jwt.verify(jwtToken, "jjj");
-    console.log("Decoded JWT -->", decodedValue);
+    const decodedValue = jwt.verify(jwtToken, process.env.JWT_SECRET || "jjj");
 
     if (!decodedValue.email || !decodedValue.userId || !decodedValue.role) {
       return res.status(401).json({
